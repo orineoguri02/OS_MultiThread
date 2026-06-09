@@ -2,14 +2,13 @@
 
 CC      = gcc
 CFLAGS  = -Wall -Wextra -std=c11 -pthread
-LDFLAGS = -pthread
 
 .PHONY: all clean
 
 all: mtws
 
 mtws: mtws.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
 	rm -f mtws

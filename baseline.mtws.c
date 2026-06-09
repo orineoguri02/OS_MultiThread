@@ -128,7 +128,7 @@ fail:
 
 static int buffer_init(bounded_buffer_t *buffer, int max)
 {
-    buffer->buffer = calloc((size_t)max, sizeof(char *));
+    buffer->buffer = calloc((size_t)max, sizeof(char *)); // 버퍼 초기화
     if (buffer->buffer == NULL) {
         return -1;
     }
@@ -161,7 +161,7 @@ fail_items:
     return -1;
 }
 
-static void buffer_destroy(bounded_buffer_t *buffer)
+static void buffer_destroy(bounded_buffer_t *buffer) 
 {
     if (buffer->buffer == NULL) {
         return;
@@ -373,20 +373,24 @@ static void *worker_main(void *arg)
            worker->thread_index, worker->word);
 
     while (1) {
-        char *path = get(worker->buffer);
+        char *path;
+        long long count;
+
+        path = get(worker->buffer);
+
         if (path == NULL) {
             break;
         }
 
-        long long count = search_count_in_file(path, worker->word);
+        count = search_count_in_file(path, worker->word);
 
         printf("[Thread#%d-%lld] %s : %lld found\n",
                worker->thread_index, file_seq, path, count);
 
         /* 성능 개선: 파일 검색 결과를 로컬 변수에 저장하여 공유 뮤텍스 잠금을 최소화*/
-        local_found += count;
-        local_files++;
-        file_seq++;
+        local_found = local_found + count;
+        local_files = local_files + 1;
+        file_seq = file_seq + 1;
 
         free(path);
     }
@@ -454,23 +458,22 @@ int main(int argc, char *argv[])
     if (dirwalk(directory, &buffer) != 0) {
         fprintf(stderr, "Directory walk failed.\n");
     }
-
+    
     buffer_close(&buffer);
-
+    
     long long total_found = 0;
     long long total_files = 0;
     for (int i = 0; i < thread_count; i++) {
         pthread_join(threads[i], NULL);
-        total_found += worker_args[i].local_found;
-        total_files += worker_args[i].local_files;
+        total_found = total_found + worker_args[i].local_found;
+        total_files = total_files + worker_args[i].local_files;
     }
-
+    
     printf("Total found = %lld (Num files=%lld)\n", total_found, total_files);
-
+    
     buffer_destroy(&buffer);
     free(threads);
     free(worker_args);
     free(word);
     return 0;
 }
-
